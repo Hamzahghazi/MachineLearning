@@ -1,0 +1,389 @@
+Import
+
+import pandas as pd
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+
+file_path = "Galton.csv"  # Replace with the actual file name
+df = pd.read_csv(file_path)
+
+print(df.head())  # Display the first few rows
+
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+df = df.iloc[:, [2,3,4,7,8]]
+
+print(df.head(1))
+
+features_cols = list(range(df.shape[1]))
+
+features_cols.pop(-2)
+
+train_X, test_X, train_y, test_y = train_test_split(df.iloc[:, features_cols], df.iloc[:, -2], test_size=0.2,random_state=42)
+print(features_cols)
+
+dt_model = DecisionTreeClassifier(max_leaf_nodes=2, random_state=42)
+
+dt_model.fit(train_X, train_y)
+
+gender_pred_tree = dt_model.predict(test_X)
+
+accuracy_tree = accuracy_score(test_y, gender_pred_tree)
+
+print(accuracy_tree)
+
+def get_accs(max_leaf_nodes, train_X, test_X, train_y, test_y):
+    dt_model = DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=None, min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, max_features=None, random_state=42, max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=0.0, class_weight=None, ccp_alpha=0.0, monotonic_cst=None)
+    dt_model.fit(train_X, train_y)
+    preds_val = dt_model.predict(test_X)
+    accs = accuracy_score(test_y, preds_val)
+    return(accs)
+
+best_acc = 0
+best_max_leaf_nodes = 0
+
+for max_leaf_nodes in [2,3,4,5,6,7]:
+    my_accs = get_accs(max_leaf_nodes, train_X, test_X, train_y, test_y)
+
+    if my_accs > best_acc:
+        best_acc = my_accs
+        best_max_leaf_nodes = max_leaf_nodes
+print("Best Max leaf nodes:", best_max_leaf_nodes)
+print("Highest Accuracy Score: %.3f" % best_acc)
+
+columns_to_remove = ['midparentHeight', 'gender']
+target_column = ['gender']
+X = df.drop(columns=columns_to_remove)
+y = df[target_column]
+train_X_2, test_X_2, train_y_2, test_y_2 = train_test_split(X, y, test_size=0.2, random_state=42)
+
+dt_model_2 = DecisionTreeClassifier(max_leaf_nodes=42, random_state=42)
+dt_model_2.fit(train_X_2, train_y_2)
+gender_pred_tree_2 = dt_model_2.predict(test_X_2)
+accs_2 = accuracy_score(test_y_2, gender_pred_tree_2)
+print(accs_2)
+
+def get_accs(max_leaf_nodes, train_X_2, test_X_2, train_y_2, test_y_2):
+    dt_model_2 = DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=None, min_samples_split=4, min_samples_leaf=1, min_weight_fraction_leaf=0.0, max_features=None, random_state=1, max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=0.0, class_weight=None, ccp_alpha=0.0, monotonic_cst=None)
+    dt_model_2.fit(train_X_2, train_y_2)
+    preds_val_2 = dt_model_2.predict(test_X_2)
+    accs = accuracy_score(test_y_2, preds_val_2)
+    return(accs)
+
+
+best_acc = 0
+best_max_leaf_nodes = 0
+
+for max_leaf_nodes in range(2,100):
+    my_accs = get_accs(max_leaf_nodes, train_X_2, test_X_2, train_y_2, test_y_2)
+
+    if my_accs > best_acc:
+        best_acc = my_accs
+        best_max_leaf_nodes = max_leaf_nodes
+print("Best Max leaf nodes:", best_max_leaf_nodes)
+print("Highest Accuracy Score: %.3f" % best_acc)
+
+rf_model = RandomForestClassifier(n_estimators=100, criterion='gini', max_depth=None, min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, max_features='sqrt', max_leaf_nodes=None, min_impurity_decrease=0.0, bootstrap=True, oob_score=False, n_jobs=None, random_state=42, verbose=0, warm_start=False, class_weight=None, ccp_alpha=0.0, max_samples=None, monotonic_cst=None)
+rf_model.fit(train_X, train_y)
+gender_pred_rf = rf_model.predict(test_X)
+accs_rf = accuracy_score(test_y, gender_pred_rf)
+print(accs_rf)
+
+
+
+def test_n_estimators(n_estimators_range, train_X, test_X, train_y, test_y):
+    """
+    Function to test different values of n_estimators for Random Forest
+    and find the best one based on accuracy.
+    """
+
+    best_acc = 0
+    best_n_estimator = 0
+
+    for n in n_estimators_range:
+        model = RandomForestClassifier(n_estimators=n, random_state=42)
+        model.fit(train_X, train_y)
+        preds_val = model.predict(test_X)
+        accs = accuracy_score(test_y, preds_val)
+
+
+        if accs > best_acc:
+            best_acc = accs
+            best_n_estimator = n
+
+    # Final results
+    print("\nBest n_estimators:", best_n_estimator)
+    print("Highest Accuracy Score: {:.3f}".format(best_acc))
+
+    return best_n_estimator, best_acc
+
+# Ensure the function is actually being called
+n_estimators_range = range(10, 200, 10)  # Testing with a more reasonable range
+best_n, best_accuracy = test_n_estimators(n_estimators_range, train_X, test_X, train_y, test_y)
+
+
+scaler = StandardScaler()
+
+train_X_scaled = scaler.fit_transform(train_X)
+test_X_scaled = scaler.transform(test_X)
+
+
+knn_model = KNeighborsClassifier(n_neighbors=10)
+knn_model.fit(train_X_scaled, train_y)
+gender_pred_knn = knn_model.predict(test_X_scaled)
+accs_knn = accuracy_score(test_y, gender_pred_knn)
+print(accs_knn)
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+
+def test_n_neighbors(n_neighbors_range, train_X_scaled, test_X_scaled, train_y, test_y):
+    """
+    Function to test different values of n_neighbors for K-Nearest Neighbors (KNN)
+    and find the best one based on accuracy.
+    """
+
+    best_acc = 0
+    best_n_neighbors = 0
+
+    for n in n_neighbors_range:
+        knnmodel = KNeighborsClassifier(n_neighbors=n)
+        knnmodel.fit(train_X_scaled, train_y)
+        preds_val = knnmodel.predict(test_X_scaled)
+        accs = accuracy_score(test_y, preds_val)
+
+
+        if accs > best_acc:
+            best_acc = accs
+            best_n_neighbors = n
+
+    # Final results
+    print("\nBest n_neighbors:", best_n_neighbors)
+    print("Highest Accuracy Score: {:.3f}".format(best_acc))
+
+    return best_n_neighbors, best_acc
+
+# Ensure the function is actually being called
+n_neighbors_range = range(1, 50, 2)  # Testing odd values from 1 to 49 (to avoid ties)
+best_k, best_accuracy = test_n_neighbors(n_neighbors_range, train_X_scaled, test_X_scaled, train_y, test_y)
+
+final_knn = KNeighborsClassifier(n_neighbors=best_k)
+final_knn.fit(train_X_scaled, train_y)
+
+amour = pd.DataFrame([[70, 64, 67, 65]])  # Ensure it's 2D
+amour_scaled = scaler.transform(amour)  # Scale using the same scaler
+
+# Predict Gender
+amour_prediction = final_knn.predict(amour_scaled)
+print("\nPredicted Gender for amour:", amour_prediction[0])
+
+svm_model = SVC(C=3.0, kernel='rbf', degree=3, gamma='scale', coef0=0.0, shrinking=True, probability=False, tol=0.001, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape='ovr', break_ties=False, random_state=42)
+
+svm_model.fit(train_X_scaled, train_y)
+gender_pred_svm = svm_model.predict(test_X_scaled)
+accs_svm = accuracy_score(test_y, gender_pred_svm)
+print(accs_svm)
+
+
+
+```
+# This is formatted as code
+```
+
+# import things
+
+import pandas as pd
+import numpy as np
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import root_mean_squared_error
+from sklearn.preprocessing import LabelEncoder
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Update the file paths to the correct paths in your Google Drive
+drive.mount('/content/drive')
+df = pd.read_csv('/content/drive/MyDrive/Coding/Colab Notebooks/Podcast Prediction/trainppl.csv')
+df_test = pd.read_csv('/content/drive/MyDrive/Coding/Colab Notebooks/Podcast Prediction/testppl.csv')
+
+df.head(1)
+
+df['Podcast_Name'].fillna('Unknown', inplace=True)
+df['Episode_Title'].fillna('Unknown', inplace=True)
+df['Episode_Length_minutes'].fillna('Unknown', inplace=True)
+df['Genre'].fillna('Unknown', inplace=True)
+df['Host_Popularity_percentage'].fillna('Unknown', inplace=True)
+df['Publication_Day'].fillna('Unknown', inplace=True)
+df['Publication_Time'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df['Guest_Popularity_percentage'].fillna('Unknown', inplace=True)
+df['Number_of_Ads'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df['Episode_Sentiment'].fillna('Unknown', inplace=True)
+
+df_test['Podcast_Name'].fillna('Unknown', inplace=True)
+df_test['Episode_Title'].fillna('Unknown', inplace=True)
+df_test['Episode_Length_minutes'].fillna('Unknown', inplace=True)
+df_test['Genre'].fillna('Unknown', inplace=True)
+df_test['Host_Popularity_percentage'].fillna('Unknown', inplace=True)
+df_test['Publication_Day'].fillna('Unknown', inplace=True)
+df_test['Publication_Time'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df_test['Guest_Popularity_percentage'].fillna('Unknown', inplace=True)
+df_test['Number_of_Ads'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df_test['Episode_Sentiment'].fillna('Unknown', inplace=True)
+
+df.Guest_Popularity_percentage.unique()
+
+df.drop(df.columns[2], axis=1, inplace=True)
+df_test.drop(df_test.columns[2], axis=1, inplace=True)
+
+df.head(5)
+
+categorical_columns = ['Genre', 'Publication_Day', 'Publication_Time', 'Episode_Sentiment']
+
+df = pd.get_dummies(df, columns=categorical_columns, prefix=categorical_columns)
+
+df_test = pd.get_dummies(df_test, columns=categorical_columns, prefix=categorical_columns)
+
+df.head()
+
+# prompt: I want to make all the false and true in my table into binary
+
+# Assuming 'df' is your DataFrame
+for col in df.columns:
+    if df[col].dtype == 'bool':
+        df[col] = df[col].astype(int)
+
+for col in df_test.columns:
+    if df_test[col].dtype == 'bool':
+        df_test[col] = df_test[col].astype(int)
+
+
+df.head()
+
+# prompt: I want to make the podcast name into numbers but only in one column
+
+# Create a label encoder object
+le = LabelEncoder()
+
+# Fit the encoder on the 'Podcast_Name' column of the training data
+le.fit(df['Podcast_Name'])
+
+# Transform the 'Podcast_Name' column in both training and testing data
+df['Podcast_Name'] = le.transform(df['Podcast_Name'])
+df_test['Podcast_Name'] = le.transform(df_test['Podcast_Name'])
+
+
+df.head()
+
+# Replace 'Unknown' with a numeric value before converting to int
+df = df.replace('Unknown', -1) # Using -2 to distinguish from NaNs filled with -1
+df_test = df_test.replace('Unknown', -1)
+
+df.replace([np.inf, -np.inf], np.nan, inplace=True)
+# Fill NaN with a suitable integer, e.g., -1
+df = df.fillna(-1).astype(int)
+
+df_test.replace([np.inf, -np.inf], np.nan, inplace=True)
+df_test = df_test.fillna(-1).astype(int)
+
+df.Guest_Popularity_percentage.unique()
+
+# Model Training
+
+X_train = df.drop(['Listening_Time_minutes', 'id'], axis=1)
+y_train = df['Listening_Time_minutes']
+X_test = df_test.drop(['id'], axis=1)
+y_test = df_test['id']
+train_x, test_x, train_y, test_y = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+rfr = RandomForestRegressor(n_estimators=50, random_state=42)
+rfr.fit(train_x, train_y)
+pred = rfr.predict(test_x)
+rmse = root_mean_squared_error(test_y, pred)
+print(rmse)
+
+def n_estimators(n_estimators_range, train_x, test_x, train_y, test_y):
+
+
+    best_rmse = 0
+    best_n_estimators= 0
+
+    for n in n_estimators_range:
+        rfr = RandomForestRegressor(n_estimators=n)
+        rfr.fit(train_x, train_y)
+        preds_val = rfr.predict(test_x)
+        rmse = root_mean_squared_error(test_y, preds_val)
+
+
+        if rmse < best_rmse or best_rmse == 0:
+            best_rmse = rmse
+            best_n_estimators = n
+
+    # Final results
+    print("\nBest n_estimators:", best_n_estimators)
+    print("Lowest RMSE: {:.3f}".format(best_rmse))
+
+    return best_n_estimators, best_rmse
+
+# Ensure the function is actually being called
+n_estimators_range = range(1,501)  # Testing odd values from 1 to 49 (to avoid ties)
+best_n, best_accuracy = n_estimators(n_estimators_range, train_x, test_x, train_y, test_y)
+
+dtr = DecisionTreeRegressor(max_depth=None, random_state=42)
+dtr.fit(train_x, train_y)
+preddtr = dtr.predict(test_x)
+rmsedtr = root_mean_squared_error(test_y, preddtr)
+print(rmsedtr)
+
+def max_depth_tuner(max_depth_range, train_x, test_x, train_y, test_y):
+    best_rmse = float("inf")
+    best_depth = None
+
+    for depth in max_depth_range:
+        dtr = DecisionTreeRegressor(max_depth=depth, random_state=42)
+        dtr.fit(train_x, train_y)
+        preds = dtr.predict(test_x)
+        rmse = np.sqrt(mean_squared_error(test_y, preds))
+
+        if rmse < best_rmse:
+            best_rmse = rmse
+            best_depth = depth
+
+    print("\nBest max_depth:", best_depth)
+    print("Lowest RMSE: {:.3f}".format(best_rmse))
+
+    return best_depth, best_rmse
+
+depth_range = range(1, 101)  # Try depths from 1 to 50
+best_depth, best_rmse = max_depth_tuner(depth_range, train_x, test_x, train_y, test_y)
+
+
+svr = SVR()
+svr.fit(train_x, train_y)
+predsvr = svr.predict(test_x)
+rmsesvr = root_mean_squared_error(test_y, predsvr)
+print(rmsesvr)
+
+final_pred = final_rfr.predict(X_test)
+
+
+submission = pd.DataFrame({
+    "id": y_test.values.ravel(),  # Use the actual PassengerId from your dataset
+    "Listening_Time_minutes": final_pred # Use your model's predicted values
+})
+
+
+submission.to_csv('Podacst.csv', index=False)
+
+
+print(submission.head())
