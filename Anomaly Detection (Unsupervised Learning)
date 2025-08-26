@@ -1,0 +1,260 @@
+# DATA + Libraries
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import DBSCAN
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import silhouette_score
+from sklearn.ensemble import IsolationForest
+
+# Data Analysis Code - Monday
+
+from sklearn.datasets import make_blobs
+X, y = make_blobs(centers=3, cluster_std=0.5, random_state=0)
+
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis')
+plt.title("Scatter Plot")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.show()
+## I want you to plot three clusters on a scatter plot and give each cluster a different color##
+## and I want you to tell me how many data points there are using code ##
+print("Number of data points:", len(X))
+
+
+# Data Processing Code - Monday
+
+# Before preprocessing the data, tell me from your numerical or plotting observations if it makes sense to preprocess the code #
+# Compare the preprocessed plot from the postprocessed plot #
+
+# Although the clusters are visible, there is some ambiguity between the yellow and the purple, meaning that scaling the data might remove that noise and make the clusters more obvious#
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+plt.scatter(X_scaled[:, 0], X_scaled[:, 1], c=y, cmap='viridis')
+
+
+
+saclermm = MinMaxScaler()
+X_scaledmm = saclermm.fit_transform(X)
+
+plt.scatter(X_scaledmm[:, 0], X_scaledmm[:, 1], c=y, cmap='viridis')
+
+# K Means Clustering - Tuesday
+
+# Initialize K-Means Algorithm and use the
+kmeans = KMeans(n_clusters=3, random_state=0)
+kmeans.fit(X)
+labels = kmeans.labels_
+centroids = kmeans.cluster_centers_
+plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', s=50)
+plt.scatter(centroids[:, 0], centroids[:, 1], c='red', marker='X', s=200, label='Centroids')
+plt.title("K-Means Clustering Result")
+plt.legend()
+plt.show()
+
+kmeans = KMeans(n_clusters=3, random_state=0)
+kmeans.fit(X_scaled)
+labels = kmeans.labels_
+centroids = kmeans.cluster_centers_
+plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', s=50)
+plt.scatter(centroids[:, 0], centroids[:, 1], c='red', marker='X', s=200, label='Centroids')
+plt.title("K-Means Clustering Result")
+plt.legend()
+plt.show()
+
+# Heirarchical Clustering - Tuesday
+
+## Agglomerative
+
+# Define Agglomerative
+# bottom-up hierarchical clustering method where it makes every point its own clusters and then starts merging similar clusters. The number of clusters is define, above I put 3 clusters
+
+## Divisive
+
+# Define Divisive
+# The opposite of agglomerative because it is top-down clustering starting with large clusters and then narrawoing it down.
+
+# DBSCAN - Wednesday
+
+# Intiialize DBSCAN
+db = DBSCAN(eps=0.7, min_samples=3)
+labels = db.fit_predict(X)
+
+plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='rainbow')
+plt.title("DBSCAN Clustering")
+plt.show()
+print("Unique cluster labels found by DBSCAN:", np.unique(labels))
+
+
+db = DBSCAN(eps=0.5, min_samples=3)
+labels = db.fit_predict(X_scaled)
+
+plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='rainbow')
+plt.title("DBSCAN Clustering")
+plt.show()
+print("Unique cluster labels found by DBSCAN:", np.unique(labels))
+
+db = DBSCAN(eps=0.15, min_samples=3)
+labels = db.fit_predict(X_scaledmm)
+
+plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='rainbow')
+plt.title("DBSCAN Clustering")
+plt.show()
+print("Unique cluster labels found by DBSCAN:", np.unique(labels))
+
+# Principal Component Analysis - Wednesday
+
+# Initialize PCA
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+
+plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y, cmap='viridis')
+
+# Anomaly Detection Project - Thursday
+
+# Lastly using any clustering algorithm and the following data, create an anomaly detection model
+# Highlight any anomaly in red
+X, y = make_blobs(n_samples = 2000, shuffle = False, n_features = 2, random_state=0)
+
+db_anamolyscanner = DBSCAN(eps=0.2, min_samples=5)
+labels = db_anamolyscanner.fit_predict(X)
+
+anamolies = X[labels == -1]
+normal = X[labels != -1]
+
+plt.scatter(normal[:, 0], normal[:, 1], c='blue', label='Normal')
+plt.scatter(anamolies[:, 0], anamolies[:, 1], c='red', label='Anomalies')
+
+# Lastly using any clustering algorithm and the following data, create an anomaly detection model
+# Highlight any anomaly in red
+X_2, y_2 = make_blobs(n_samples = 2000, shuffle = False, n_features = 2, random_state=0)
+
+scaler = StandardScaler()
+X2_scaled = scaler.fit_transform(X_2)
+
+db_anamolyscanner = DBSCAN(eps=0.2, min_samples=5)
+labels = db_anamolyscanner.fit_predict(X2_scaled)
+
+anamolies = X2_scaled[labels == -1]
+normal = X2_scaled[labels != -1]
+
+plt.scatter(normal[:, 0], normal[:, 1], c='blue', label='Normal')
+plt.scatter(anamolies[:, 0], anamolies[:, 1], c='red', label='Anomalies')
+
+# Voltage Signal Anamoly Detection
+
+
+frequency = 60
+amplitude = 220
+time_period = 0.09
+sampling_rate = 1000
+
+
+t = np.linspace(0, time_period, int(time_period * sampling_rate))
+phase_a = amplitude * np.sin(2 * np.pi * frequency * t)
+phase_b = amplitude * np.sin(2 * np.pi * frequency * t - 2*np.pi/3)  # 120° shift
+phase_c = amplitude * np.sin(2 * np.pi * frequency * t - 4*np.pi/3)  # 240° shift
+
+
+spike_index = int(0.6 * len(t))
+spike_width = 5
+spike_amplitude = 1.8 * amplitude
+
+# Apply the spike to Phase A
+for i in range(spike_width):
+    if spike_index + i < len(phase_a):
+        phase_a[spike_index + i] = spike_amplitude
+
+
+# Hamzah This is where I store the data!!!! #
+df = pd.DataFrame({
+    'Time': t,
+    'Phase A': phase_a,
+    'Phase B': phase_b,
+    'Phase C': phase_c
+})
+
+# Plot the three-phase voltage with the anomaly
+plt.figure(figsize=(12, 6))
+plt.plot(df['Time'], df['Phase A'], label='Phase A (with spike)')
+plt.plot(df['Time'], df['Phase B'], label='Phase B')
+plt.plot(df['Time'], df['Phase C'], label='Phase C')
+plt.axhline(y=0, color='k', linestyle='-', alpha=0.3)
+plt.grid(True)
+plt.xlabel('Time (seconds)')
+plt.ylabel('Voltage (V)')
+plt.title('Three-Phase AC Voltage Signal with Anomaly in Phase A')
+plt.legend()
+plt.tight_layout()
+
+
+# Add a second plot to zoom in on the anomaly region
+plt.figure(figsize=(12, 6))
+anomaly_start = max(0, spike_index - 10)
+anomaly_end = min(len(t), spike_index + 10)
+plt.plot(df['Time'][anomaly_start:anomaly_end], df['Phase A'][anomaly_start:anomaly_end], 'r-', label='Phase A (anomaly)')
+plt.plot(df['Time'][anomaly_start:anomaly_end], df['Phase B'][anomaly_start:anomaly_end], 'g-', label='Phase B')
+plt.plot(df['Time'][anomaly_start:anomaly_end], df['Phase C'][anomaly_start:anomaly_end], 'b-', label='Phase C')
+plt.axhline(y=0, color='k', linestyle='-', alpha=0.3)
+plt.grid(True)
+plt.xlabel('Time (seconds)')
+plt.ylabel('Voltage (V)')
+plt.title('Zoomed View of Spike Anomaly in Phase A')
+plt.legend()
+plt.tight_layout()
+
+plt.show()
+
+
+
+
+
+# Display the DataFrame around the anomaly
+print("Data around the anomaly:")
+print(df.iloc[spike_index-5:spike_index+10])
+
+
+# Failed DBSCAN attempt
+
+X = df[['Phase A']].values.reshape(-1,1)
+V_scaled = scaler.fit_transform(X)
+
+db = DBSCAN(eps=0.1, min_samples=3).fit(V_scaled)  # Adjust eps as needed
+df['anomaly'] = db.labels_  # -1 means anomaly
+plt.figure(figsize=(12, 6))
+plt.plot(df['Time'], V_scaled, label='Phase A', color='r')
+
+# Plot anomalies in black
+anomalies = df[df['anomaly'] == -1]
+plt.scatter(anomalies['Time'], anomalies['Phase A'], color='black', label='Anomaly', zorder=5)
+
+plt.xlabel('Time (seconds)')
+plt.ylabel('Voltage (V)')
+plt.legend()
+plt.title('Anomaly Detection in Phase A using DBSCAN')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+print(np.unique(db.labels_, return_counts=True))
+
+
+# Isolation Forest
+
+iso = IsolationForest(contamination=0.05, random_state=42)
+iso.fit(V_scaled)
+df['anomaly'] = iso.predict(V_scaled)
+plt.scatter(df['Time'], V_scaled, c=df['anomaly'], cmap='coolwarm', label='Phase A')
+plt.xlabel('Time (seconds)')
+plt.ylabel('Voltage (V)')
+plt.title('Anomaly Detection in Phase A using Isolation Forest')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
