@@ -1,0 +1,208 @@
+import pandas as pd
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import root_mean_squared_error
+from sklearn.preprocessing import LabelEncoder
+
+
+test = pd.read_csv('chicken.csv')
+test.head()
+
+df = pd.read_csv('training.csv')
+df.head()
+
+df_2 = pd.read_csv('training_extra.csv')
+df_2.head()
+
+df['Brand'].fillna('Unknown', inplace=True)
+df['Material'].fillna('Unknown', inplace=True)
+df['Size'].fillna('Unknown', inplace=True)
+df['Compartments'].fillna('Unknown', inplace=True)
+df['Laptop Compartment'].fillna('Unknown', inplace=True)
+df['Waterproof'].fillna('Unknown', inplace=True)
+df['Style'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df['Color'].fillna('Unknown', inplace=True)
+
+df_2['Brand'].fillna('Unknown', inplace=True)
+df_2['Material'].fillna('Unknown', inplace=True)
+df_2['Size'].fillna('Unknown', inplace=True)
+df_2['Compartments'].fillna('Unknown', inplace=True)
+df_2['Laptop Compartment'].fillna('Unknown', inplace=True)
+df_2['Waterproof'].fillna('Unknown', inplace=True)
+df_2['Style'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df_2['Color'].fillna('Unknown', inplace=True)
+
+test['Brand'].fillna('Unknown', inplace=True)
+test['Material'].fillna('Unknown', inplace=True)
+test['Size'].fillna('Unknown', inplace=True)
+test['Compartments'].fillna('Unknown', inplace=True)
+test['Laptop Compartment'].fillna('Unknown', inplace=True)
+test['Waterproof'].fillna('Unknown', inplace=True)
+test['Style'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+test['Color'].fillna('Unknown', inplace=True)
+
+
+df.Brand.unique()
+
+categorical_columns = ['Brand', 'Material', 'Size', 'Style', 'Color']
+
+df = pd.get_dummies(df, columns=categorical_columns, prefix=categorical_columns)
+
+df_2 = pd.get_dummies(df_2, columns=categorical_columns, prefix=categorical_columns)
+
+test = pd.get_dummies(test, columns=categorical_columns, prefix=categorical_columns)
+
+
+# 3. Apply Label Encoding to Categorical Columns
+# categorical_columns = ['Brand', 'Material', 'Size', 'Style', 'Color']
+# label_encoders = {}  # Store encoders if needed later
+
+# for col in categorical_columns:
+#     le = LabelEncoder()
+#     df[col] = df[col].astype(str)  # Convert to string before encoding
+#     df[col] = le.fit_transform(df[col])  # Apply Label Encoding
+#     label_encoders[col] = le  # Store encoder for future decoding if needed
+
+# # 4. Handle Infinite Values & Convert to Integers
+# df.replace([np.inf, -np.inf], np.nan, inplace=True)  # Replace infinite with NaN
+# df.fillna(-1, inplace=True)  # Fill remaining NaNs with -1
+
+# for col in categorical_columns:
+#     le = LabelEncoder()
+#     df_2[col] = df_2[col].astype(str)  # Convert to string before encoding
+#     df_2[col] = le.fit_transform(df_2[col])  # Apply Label Encoding
+#     label_encoders[col] = le  # Store encoder for future decoding if needed
+
+# # 4. Handle Infinite Values & Convert to Integers
+# df_2.replace([np.inf, -np.inf], np.nan, inplace=True)  # Replace infinite with NaN
+# df_2.fillna(-1, inplace=True)  # Fill remaining NaNs with -1
+# # 5. Print Processed Data
+print(df.head())  # Show first few rows
+print(df_2.head())
+
+binary_columns = ['Laptop Compartment', 'Waterproof']
+for col in binary_columns:
+    df[col].fillna('Unknown', inplace=True)
+    df[col] = df[col].map({'Yes': 1, 'No': 0, 'Unknown': -1})  # Assign -1 for unknown
+for col in binary_columns:
+    df_2[col].fillna('Unknown', inplace=True)
+    df_2[col] = df_2[col].map({'Yes': 1, 'No': 0, 'Unknown': -1})  # Assign -1 for unknown
+for col in binary_columns:
+    test[col].fillna('Unknown', inplace=True)
+    test[col] = test[col].map({'Yes': 1, 'No': 0, 'Unknown': -1})  # Assign -1 for unknown
+
+df.head(1)
+
+df_2.head(1)
+
+# Replace infinite values with NaN
+df.replace([np.inf, -np.inf], np.nan, inplace=True)
+# Fill NaN with a suitable integer, e.g., -1
+df = df.fillna(-1).astype(int)
+
+df_2.replace([np.inf, -np.inf], np.nan, inplace=True)
+# Fill NaN with a suitable integer, e.g., -1
+df_2 = df_2.fillna(-1).astype(int)
+
+test.replace([np.inf, -np.inf], np.nan, inplace=True)
+# Fill NaN with a suitable integer, e.g., -1
+test = test.fillna(-1).astype(int)
+
+
+
+# Assuming 'df' is your DataFrame with 'Price' as the target variable
+# train_X, test_X, train_y, test_y = train_test_split(
+#     df.drop('Price', axis=1), df['Price'], test_size=0.2, random_state=42
+# )
+X, y = df.drop(['Price', 'id'], axis=1), df['Price']
+
+X_train, y_train = df_2.drop(['Price', 'id'], axis=1), df_2['Price']
+
+y_test = test['id']
+
+
+
+X_test = test.drop('id', axis=1)
+
+
+
+rfr = RandomForestRegressor(n_estimators=100, random_state=42)
+rfr.fit(X, y)
+ahhh = rfr.predict(X_test)
+
+# from sklearn.preprocessing import StandardScaler
+
+# # Initialize the scaler
+# scaler = StandardScaler()
+
+# # Fit on the training data and transform all three datasets
+# X_scaled = scaler.fit_transform(X)  # Fit and transform training data
+# X_train_scaled = scaler.transform(X_train)        # Transform testing data (no fit)
+# X_test_scaled = scaler.transform(X_test)  # Transform external data (no fit)
+
+# # Now your features are properly scaled for KNN!
+
+# train_X, test_X, train_y, test_y = train_test_split(
+#     X_scaled, y, test_size=0.2, random_state=42
+# )
+
+# knn = KNeighborsClassifier(n_neighbors=100)
+# knn.fit(train_X, train_y)
+
+# knn_predictions = knn.predict(test_X)
+# rmse = root_mean_squared_error(test_y, knn_predictions)
+# print(f"Root Mean Squared Error (KNN): {rmse}")
+
+# def test_n_neighbors(n_neighbors_range, train_X_scaled, test_X_scaled, train_y, test_y):
+#     """
+#     Function to test different values of n_neighbors for K-Nearest Neighbors (KNN)
+#     and find the best one based on accuracy.
+#     """
+
+#     best_rmse = 0
+#     best_n_neighbors = 0
+
+#     for n in n_neighbors_range:
+#         knnmodel = KNeighborsClassifier(n_neighbors=n)
+#         knnmodel.fit(train_X, train_y)
+#         preds_val = knnmodel.predict(test_X)
+#         rmse = root_mean_squared_error(test_y, preds_val)
+
+
+#         if rmse < best_rmse or best_rmse == 0:
+#             best_rmse = rmse
+#             best_n_neighbors = n
+
+#     # Final results
+#     print("\nBest n_neighbors:", best_n_neighbors)
+#     print("Highest Accuracy Score: {:.3f}".format(best_rmse))
+
+#     return best_n_neighbors, best_rmse
+
+# # Ensure the function is actually being called
+# n_neighbors_range = range(1, 50, 2)  # Testing odd values from 1 to 49 (to avoid ties)
+# best_k, best_accuracy = test_n_neighbors(n_neighbors_range, train_X, test_X, train_y, test_y)
+
+# final_knn = KNeighborsClassifier(n_neighbors=best_k)
+# final_knn.fit(train_X, train_y)
+
+
+submission = pd.DataFrame({
+    "id": y_test.values.ravel(),  # Use the actual PassengerId from your dataset
+    "Price": ahhh # Use your model's predicted values
+})
+
+
+submission.to_csv('Backpack1.csv', index=False)
+
+
+print(submission.head())
+
+
+
