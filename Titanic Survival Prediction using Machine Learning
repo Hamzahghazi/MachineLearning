@@ -1,0 +1,167 @@
+import pandas as pd
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder
+
+train_path = "/train.csv"  # Replace with the actual file name
+df = pd.read_csv(train_path)
+
+print(df.head(1))  # Display the first few rows
+
+df = df.iloc[:,[0, 1, 2, 4, 5, 6, 7,10,11]]
+
+df.head(1)
+
+X_features = df.drop(columns=df.columns[[0,1]]) # Use a list to specify multiple column indices for dropping
+y_labels_train = df.iloc[:, [0,1]] # Use a list to specify multiple column indices for selection
+
+X_features["Sex"] = X_features["Sex"].map({"male": 1, "female": 0})
+X_features["Cabin"] = X_features["Cabin"].astype(str).str[0]  # Get only the first letter
+# Replace 'n' (likely representing NaN) with a numerical value, e.g., -1
+X_features['Cabin'] = X_features['Cabin'].replace('n', -1)
+# Convert Cabin column to numeric
+X_features['Cabin'] = pd.to_numeric(X_features['Cabin'], errors='coerce')
+X_features = pd.get_dummies(X_features, columns=["Embarked"], prefix="Embarked")
+
+X_features.head(1)
+
+y_labels_train.head(1)
+
+train_X, test_X, train_y, test_y = train_test_split(X_features, y_labels_train, test_size=0.5, random_state=42)
+
+dt_model_f = DecisionTreeClassifier(max_leaf_nodes=10, random_state=42)
+dt_model_f.fit(train_X, train_y)
+survive = dt_model_f.predict(test_X)
+
+pred_survive = survive[:,1]
+
+true_survived_labels = test_y['Survived']
+
+# Calculate accuracy
+accuracy_score(true_survived_labels, pred_survive)
+
+def get_accs(max_leaf_nodes, train_X, test_X, train_y, test_y):
+    dt_model = DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=None, min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, max_features=None, random_state=42, max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=0.0, class_weight=None, ccp_alpha=0.0, monotonic_cst=None)
+    dt_model.fit(train_X, train_y)
+    preds_val = dt_model.predict(test_X)
+    accs = accuracy_score(true_survived_labels, pred_survive)
+    return(accs)
+
+best_acc = 0
+best_max_leaf_nodes = 0
+
+for max_leaf_nodes in range(2,100):
+    my_accs = get_accs(max_leaf_nodes, train_X, test_X, train_y, test_y)
+
+    if my_accs > best_acc:
+        best_acc = my_accs
+        best_max_leaf_nodes = max_leaf_nodes
+print("Best Max leaf nodes:", best_max_leaf_nodes)
+print("Highest Accuracy Score: %.3f" % best_acc)
+
+dt_model = DecisionTreeClassifier(max_leaf_nodes=2, random_state=42)
+dt_model.fit(X_features, y_labels_train)
+
+
+
+test_path = "/test.csv"  # Replace with the actual file name
+df = pd.read_csv(test_path)
+
+print(df.head(1))  # Display the first few rows
+
+df = df.iloc[:,[0,1,3,4,5,6,9,10]]
+
+X_features_test = df.iloc[:, 1:]
+
+X_features_test["Sex"] = X_features_test["Sex"].map({"male": 1, "female": 0})
+X_features_test["Cabin"] = X_features_test["Cabin"].astype(str).str[0]  # Get only the first letter
+# Replace 'n' (likely representing NaN) with a numerical value, e.g., -1
+X_features_test['Cabin'] = X_features_test['Cabin'].replace('n', -1)
+# Convert Cabin column to numeric
+X_features_test['Cabin'] = pd.to_numeric(X_features_test['Cabin'], errors='coerce')
+X_features_test = pd.get_dummies(X_features_test, columns=["Embarked"], prefix="Embarked")
+y_labels_test = df.iloc[:, 0]
+
+X_features_test.head(1)
+
+
+rfc_model = RandomForestClassifier(n_estimators=10, random_state=42)
+rfc_model.fit(train_X, train_y)
+pred_rfc = rfc_model.predict(test_X)
+
+pred_rfc_fr = pred_rfc[:,1]
+accuracy_score(pred_rfc_fr, test_y['Survived'])
+
+def test_n_estimators(n_estimators_range, train_X, test_X, train_y, test_y):
+    """
+    Function to test different values of n_estimators for Random Forest
+    and find the best one based on accuracy.
+    """
+
+    best_acc = 0
+    best_n_estimator = 0
+
+    for n in n_estimators_range:
+        model = RandomForestClassifier(n_estimators=n, random_state=42)
+        model.fit(train_X, train_y)
+        preds_val = model.predict(test_X)
+        preds_val_fr = preds_val[:,1]
+        accs = accuracy_score(test_y['Survived'], preds_val_fr)
+
+
+        if accs > best_acc:
+            best_acc = accs
+            best_n_estimator = n
+
+    # Final results
+    print("\nBest n_estimators:", best_n_estimator)
+    print("Highest Accuracy Score: {:.3f}".format(best_acc))
+
+    return best_n_estimator, best_acc
+
+# Ensure the function is actually being called
+n_estimators_range = range(10, 200, 10)  # Testing with a more reasonable range
+best_n, best_accuracy = test_n_estimators(n_estimators_range, train_X, test_X, train_y, test_y)
+
+
+rfc_model = RandomForestClassifier(n_estimators=110, random_state=42)
+rfc_model.fit(X_features, y_labels_train)
+
+ahhh = dt_model.predict(X_features_test)
+ben = rfc_model.predict(X_features_test)
+
+submission = pd.DataFrame({
+    "PassengerId": y_labels_test.values.ravel(),  # Use the actual PassengerId from your dataset
+    "Survived": ahhh [:,1] # Use your model's predicted values
+})
+
+# ✅ Save as CSV in the correct format
+submission.to_csv("Titanic8.csv", index=False)
+
+# ✅ Check the first few rows
+print(submission.head())
+
+
+submission.to_csv('/Titanic8.csv', index=False)
+
+
+
+
+import os
+print(os.listdir())  # Lists files in the current working directory
+
+
+from google.colab import drive
+drive.mount('/content/drive')  # Mount Google Drive
+
+# Move the file to your Google Drive
+!mv Titanic.csv /content/drive/MyDrive/
+
+
+
