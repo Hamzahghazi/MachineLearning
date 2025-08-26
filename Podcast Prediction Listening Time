@@ -1,0 +1,195 @@
+
+
+```
+# This is formatted as code
+```
+
+# import things
+
+import pandas as pd
+import numpy as np
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import root_mean_squared_error
+from sklearn.preprocessing import LabelEncoder
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Update the file paths to the correct paths in your Google Drive
+drive.mount('/content/drive')
+df = pd.read_csv('/content/drive/MyDrive/Coding/Colab Notebooks/Podcast Prediction/trainppl.csv')
+df_test = pd.read_csv('/content/drive/MyDrive/Coding/Colab Notebooks/Podcast Prediction/testppl.csv')
+
+df.head(1)
+
+df['Podcast_Name'].fillna('Unknown', inplace=True)
+df['Episode_Title'].fillna('Unknown', inplace=True)
+df['Episode_Length_minutes'].fillna('Unknown', inplace=True)
+df['Genre'].fillna('Unknown', inplace=True)
+df['Host_Popularity_percentage'].fillna('Unknown', inplace=True)
+df['Publication_Day'].fillna('Unknown', inplace=True)
+df['Publication_Time'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df['Guest_Popularity_percentage'].fillna('Unknown', inplace=True)
+df['Number_of_Ads'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df['Episode_Sentiment'].fillna('Unknown', inplace=True)
+
+df_test['Podcast_Name'].fillna('Unknown', inplace=True)
+df_test['Episode_Title'].fillna('Unknown', inplace=True)
+df_test['Episode_Length_minutes'].fillna('Unknown', inplace=True)
+df_test['Genre'].fillna('Unknown', inplace=True)
+df_test['Host_Popularity_percentage'].fillna('Unknown', inplace=True)
+df_test['Publication_Day'].fillna('Unknown', inplace=True)
+df_test['Publication_Time'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df_test['Guest_Popularity_percentage'].fillna('Unknown', inplace=True)
+df_test['Number_of_Ads'].fillna('Unknown', inplace=True) # This line is redundant, you already filled NaNs in 'Waterproof'
+df_test['Episode_Sentiment'].fillna('Unknown', inplace=True)
+
+df.Guest_Popularity_percentage.unique()
+
+df.drop(df.columns[2], axis=1, inplace=True)
+df_test.drop(df_test.columns[2], axis=1, inplace=True)
+
+df.head(5)
+
+categorical_columns = ['Genre', 'Publication_Day', 'Publication_Time', 'Episode_Sentiment']
+
+df = pd.get_dummies(df, columns=categorical_columns, prefix=categorical_columns)
+
+df_test = pd.get_dummies(df_test, columns=categorical_columns, prefix=categorical_columns)
+
+df.head()
+
+# prompt: I want to make all the false and true in my table into binary
+
+# Assuming 'df' is your DataFrame
+for col in df.columns:
+    if df[col].dtype == 'bool':
+        df[col] = df[col].astype(int)
+
+for col in df_test.columns:
+    if df_test[col].dtype == 'bool':
+        df_test[col] = df_test[col].astype(int)
+
+
+df.head()
+
+# prompt: I want to make the podcast name into numbers but only in one column
+
+# Create a label encoder object
+le = LabelEncoder()
+
+# Fit the encoder on the 'Podcast_Name' column of the training data
+le.fit(df['Podcast_Name'])
+
+# Transform the 'Podcast_Name' column in both training and testing data
+df['Podcast_Name'] = le.transform(df['Podcast_Name'])
+df_test['Podcast_Name'] = le.transform(df_test['Podcast_Name'])
+
+
+df.head()
+
+# Replace 'Unknown' with a numeric value before converting to int
+df = df.replace('Unknown', -1) # Using -2 to distinguish from NaNs filled with -1
+df_test = df_test.replace('Unknown', -1)
+
+df.replace([np.inf, -np.inf], np.nan, inplace=True)
+# Fill NaN with a suitable integer, e.g., -1
+df = df.fillna(-1).astype(int)
+
+df_test.replace([np.inf, -np.inf], np.nan, inplace=True)
+df_test = df_test.fillna(-1).astype(int)
+
+df.Guest_Popularity_percentage.unique()
+
+# Model Training
+
+X_train = df.drop(['Listening_Time_minutes', 'id'], axis=1)
+y_train = df['Listening_Time_minutes']
+X_test = df_test.drop(['id'], axis=1)
+y_test = df_test['id']
+train_x, test_x, train_y, test_y = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+rfr = RandomForestRegressor(n_estimators=50, random_state=42)
+rfr.fit(train_x, train_y)
+pred = rfr.predict(test_x)
+rmse = root_mean_squared_error(test_y, pred)
+print(rmse)
+
+def n_estimators(n_estimators_range, train_x, test_x, train_y, test_y):
+
+
+    best_rmse = 0
+    best_n_estimators= 0
+
+    for n in n_estimators_range:
+        rfr = RandomForestRegressor(n_estimators=n)
+        rfr.fit(train_x, train_y)
+        preds_val = rfr.predict(test_x)
+        rmse = root_mean_squared_error(test_y, preds_val)
+
+
+        if rmse < best_rmse or best_rmse == 0:
+            best_rmse = rmse
+            best_n_estimators = n
+
+    # Final results
+    print("\nBest n_estimators:", best_n_estimators)
+    print("Lowest RMSE: {:.3f}".format(best_rmse))
+
+    return best_n_estimators, best_rmse
+
+# Ensure the function is actually being called
+n_estimators_range = range(1,501)  # Testing odd values from 1 to 49 (to avoid ties)
+best_n, best_accuracy = n_estimators(n_estimators_range, train_x, test_x, train_y, test_y)
+
+dtr = DecisionTreeRegressor(max_depth=None, random_state=42)
+dtr.fit(train_x, train_y)
+preddtr = dtr.predict(test_x)
+rmsedtr = root_mean_squared_error(test_y, preddtr)
+print(rmsedtr)
+
+def max_depth_tuner(max_depth_range, train_x, test_x, train_y, test_y):
+    best_rmse = float("inf")
+    best_depth = None
+
+    for depth in max_depth_range:
+        dtr = DecisionTreeRegressor(max_depth=depth, random_state=42)
+        dtr.fit(train_x, train_y)
+        preds = dtr.predict(test_x)
+        rmse = np.sqrt(mean_squared_error(test_y, preds))
+
+        if rmse < best_rmse:
+            best_rmse = rmse
+            best_depth = depth
+
+    print("\nBest max_depth:", best_depth)
+    print("Lowest RMSE: {:.3f}".format(best_rmse))
+
+    return best_depth, best_rmse
+
+depth_range = range(1, 101)  # Try depths from 1 to 50
+best_depth, best_rmse = max_depth_tuner(depth_range, train_x, test_x, train_y, test_y)
+
+
+svr = SVR()
+svr.fit(train_x, train_y)
+predsvr = svr.predict(test_x)
+rmsesvr = root_mean_squared_error(test_y, predsvr)
+print(rmsesvr)
+
+final_pred = final_rfr.predict(X_test)
+
+
+submission = pd.DataFrame({
+    "id": y_test.values.ravel(),  # Use the actual PassengerId from your dataset
+    "Listening_Time_minutes": final_pred # Use your model's predicted values
+})
+
+# Save as CSV 
+submission.to_csv('Podacst.csv', index=False)
+
+# Check the first few rows
+print(submission.head())
